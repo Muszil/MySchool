@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel_app
+    restart: always
+    volumes:
+      - ./:/var/www/html
+      
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    working_dir: /var/www/html
+    command: php artisan serve --host=0.0.0.0 --port=8000
+  db:
+    image: mariadb:10.6
+    container_name: mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: school_fees
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel123
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: laravel
+      PMA_PASSWORD: laravel123
+    depends_on:
+      - db
+
+volumes:
+  db_data:
