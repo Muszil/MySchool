@@ -1,0 +1,21 @@
+#!/bin/bash
+cd backend
+
+# Build test image
+cat > Dockerfile.test << 'DOCKERFILE'
+FROM php:8.2-cli
+RUN docker-php-ext-install pdo_mysql mbstring
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+WORKDIR /var/www/html
+COPY . .
+RUN echo "=== Test 1: artisan version ==="
+php artisan --version
+RUN echo "=== Test 2: check .env ==="
+ls -la .env 2>/dev/null || echo "No .env"
+RUN echo "=== Test 3: check APP_KEY ==="
+grep APP_KEY .env 2>/dev/null || echo "No APP_KEY"
+CMD ["sh"]
+DOCKERFILE
+
+docker build -t test-artisan -f Dockerfile.test .
+docker run -it --rm test-artisan

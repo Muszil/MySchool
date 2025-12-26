@@ -1,0 +1,46 @@
+FROM php:8.2-cli
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git curl libpng-dev libonig-dev libxml2-dev zip unzip \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Copy everything
+COPY . .
+
+# Step 1: Check files
+RUN echo "=== STEP 1: Checking files ==="
+RUN ls -la
+RUN ls -la config/
+
+# Step 2: Check .env
+RUN echo "=== STEP 2: Checking .env ==="
+RUN cat .env 2>/dev/null || echo "No .env file"
+RUN echo "APP_KEY:"
+RUN grep APP_KEY .env 2>/dev/null || echo "No APP_KEY"
+
+# Step 3: Install composer
+RUN echo "=== STEP 3: Installing composer ==="
+RUN composer install --no-interaction --optimize-autoloader --no-scripts
+
+# Step 4: Test basic PHP
+RUN echo "=== STEP 4: Testing PHP ==="
+RUN php --version
+RUN composer --version
+
+# Step 5: Test artisan WITHOUT any commands that need config
+RUN echo "=== STEP 5: Testing artisan (safe commands) ==="
+RUN php artisan --version
+
+# Step 6: Try config:cache instead of config:clear
+RUN echo "=== STEP 6: Testing config:cache ==="
+RUN php artisan config:cache 2>&1 || echo "config:cache failed"
+
+# Step 7: Show PHP error logs if any
+RUN echo "=== STEP 7: Checking for errors ==="
+CMD ["php", "-m"]
